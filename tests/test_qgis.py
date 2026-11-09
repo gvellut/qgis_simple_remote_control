@@ -309,6 +309,21 @@ class LocalServerTests(unittest.TestCase):
         self.assertFalse(self.received)
         self.assertTrue(self.server.running)
 
+    def test_raise_window_request(self):
+        iface = Mock()
+        plugin = SimpleRemoteControlPlugin(iface)
+        self.server = plugin.server
+        self.addCleanup(plugin.server.stop)
+        self.connect()
+        self.client.write(b'{"id":1,"method":"raiseWindow","params":{}}\n')
+        self.wait_for(self.client.canReadLine)
+
+        iface.mainWindow.assert_called_once_with()
+        iface.mainWindow.return_value.raise_.assert_called_once_with()
+        self.assertEqual(
+            json.loads(bytes(self.client.readLine())), {"id": 1, "ok": True}
+        )
+
     def test_occupied_address_and_settings_lock(self):
         path = Path("/tmp") / f"{self.name}.sock"
         path.write_text("occupied")

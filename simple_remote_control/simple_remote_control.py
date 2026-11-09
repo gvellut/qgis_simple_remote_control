@@ -12,7 +12,13 @@ class SimpleRemoteControlPlugin:
     def __init__(self, iface):
         self.iface = iface
         self._commands = MapCommands(iface.mapCanvas(), QgsProject.instance())
-        self.server = LocalServer(self._commands.dispatch)
+        self.server = LocalServer(self._dispatch)
+
+    def _dispatch(self, method: str, params: dict) -> int | None:
+        if method == "raiseWindow":
+            self.iface.mainWindow().raise_()
+            return None
+        return self._commands.dispatch(method, params)
 
     def initGui(self) -> None:
         window = self.iface.mainWindow()

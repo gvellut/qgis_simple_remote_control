@@ -69,6 +69,14 @@ Zoom to the selected features in a spatial vector or vector tile layer. The laye
 {"id":3,"method":"zoomToSelection","params":{"layer":0}}
 ```
 
+### `raiseWindow`
+
+Ask the window system to raise the QGIS main window on its current screen. Send an empty `params` object. A successful reply acknowledges the request.
+
+```jsonl
+{"id":4,"method":"raiseWindow","params":{}}
+```
+
 ## Common notes
 
 ### Layer identifiers

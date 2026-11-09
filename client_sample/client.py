@@ -180,6 +180,13 @@ def zoom_to_selection(socket_name, layer, layer_index):
 
 
 @cli.command()
+@click.pass_obj
+def raise_window(socket_name):
+    """Raise the QGIS main window."""
+    send_request(socket_name, "raiseWindow", {})
+
+
+@cli.command()
 @click.option("--layer", help="Exact Layers panel label.")
 @click.option(
     "--layer-index", type=click.IntRange(min=0), help="Zero-based tree index."
