@@ -1,0 +1,10 @@
+[project]
+name = "qgis-simple-remote-control"
+version = "0.1.0"
+description = "Local remote control for QGIS 4"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["ruff>=0.15"]

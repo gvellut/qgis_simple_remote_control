@@ -1,0 +1,10 @@
+line-length = 88
+target-version = "py312"
+
+[lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+order-by-type = true

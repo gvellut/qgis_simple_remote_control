@@ -1,0 +1,13 @@
+[general]
+name=Simple Remote Control
+description=Control the QGIS map and feature selection from a local process
+version=0.1.0
+qgisMinimumVersion=4.0
+qgisMaximumVersion=4.99
+author=Guilhem
+email=
+about=Pan or zoom the map, select features by expression, and zoom to a selection through a local socket.
+homepage=https://github.com/gvellut/qgis_simple_remote_control
+repository=https://github.com/gvellut/qgis_simple_remote_control
+tracker=https://github.com/gvellut/qgis_simple_remote_control/issues
+category=Map Tools
