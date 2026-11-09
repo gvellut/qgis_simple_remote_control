@@ -11,3 +11,4 @@ homepage=https://github.com/gvellut/qgis_simple_remote_control
 repository=https://github.com/gvellut/qgis_simple_remote_control
 tracker=https://github.com/gvellut/qgis_simple_remote_control/issues
 category=Map Tools
+icon=icons/remote-control.svg

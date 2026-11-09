@@ -1,6 +1,7 @@
+from pathlib import Path
+
 from qgis.core import QgsProject
-from qgis.PyQt.QtGui import QAction
-from qgis.PyQt.QtWidgets import QStyle
+from qgis.PyQt.QtGui import QAction, QIcon
 
 from .commands import MapCommands
 from .server import LocalServer
@@ -15,9 +16,10 @@ class SimpleRemoteControlPlugin:
 
     def initGui(self) -> None:
         window = self.iface.mainWindow()
-        style = window.style()
-        self._start_icon = style.standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
-        self._stop_icon = style.standardIcon(QStyle.StandardPixmap.SP_MediaStop)
+        icon_dir = Path(__file__).with_name("icons")
+        plugin_icon = QIcon(str(icon_dir / "remote-control.svg"))
+        self._start_icon = QIcon(str(icon_dir / "remote-control-start.svg"))
+        self._stop_icon = QIcon(str(icon_dir / "remote-control-stop.svg"))
         self._toggle_action = QAction(window)
         self._toggle_action.triggered.connect(self._toggle)
         self.server.running_changed.connect(self._update_action)
@@ -25,10 +27,10 @@ class SimpleRemoteControlPlugin:
         self.iface.addToolBarIcon(self._toggle_action)
         self.iface.addPluginToMenu(TITLE, self._toggle_action)
 
-        self._settings_action = QAction("Settings", window)
+        self._settings_action = QAction(plugin_icon, "Settings", window)
         self._settings_action.triggered.connect(self._open_settings)
         self.iface.addPluginToMenu(TITLE, self._settings_action)
-        self._options_factory = OptionsFactory(self.server, self._start_icon)
+        self._options_factory = OptionsFactory(self.server, plugin_icon)
         self.iface.registerOptionsWidgetFactory(self._options_factory)
 
         settings = Settings.load()
