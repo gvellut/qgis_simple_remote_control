@@ -91,7 +91,7 @@ def _is_current_user(descriptor: int) -> bool:
 class LocalServer(QObject):
     running_changed = pyqtSignal(bool)
 
-    def __init__(self, dispatch: Callable[[str, dict], None]):
+    def __init__(self, dispatch: Callable[[str, dict], int | None]):
         super().__init__()
         self._dispatch = dispatch
         self._listener = QLocalServer(self)

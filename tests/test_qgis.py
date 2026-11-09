@@ -152,7 +152,12 @@ class MapCommandTests(unittest.TestCase):
         second.selectAll()
 
         expression = """strpos("name", 'Café') > 0"""
-        self.commands.dispatch("select", {"layer": "Places", "expression": expression})
+        self.assertEqual(
+            self.commands.dispatch(
+                "select", {"layer": "Places", "expression": expression}
+            ),
+            2,
+        )
         self.assertEqual(first.selectedFeatureCount(), 2)
         self.assertEqual(second.selectedFeatureCount(), 3)
 
@@ -160,7 +165,9 @@ class MapCommandTests(unittest.TestCase):
         self.assert_center(QgsPointXY(1500, 1500))
         self.assertLess(self.canvas.extent().width(), 10000)
 
-        self.commands.dispatch("select", {"layer": 2, "expression": "false"})
+        self.assertEqual(
+            self.commands.dispatch("select", {"layer": 2, "expression": "false"}), 0
+        )
         self.assertEqual(second.selectedFeatureCount(), 0)
         with self.assertRaisesRegex(ValueError, "no selected features"):
             self.commands.dispatch("zoomToSelection", {"layer": 2})

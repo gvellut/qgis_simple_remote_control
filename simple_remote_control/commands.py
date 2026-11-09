@@ -38,11 +38,11 @@ class MapCommands:
             "zoomToSelection": self._zoom_to_selection,
         }
 
-    def dispatch(self, method: str, params: dict) -> None:
+    def dispatch(self, method: str, params: dict) -> int | None:
         command = self._methods.get(method)
         if command is None:
             raise ValueError(f"Unknown method {method!r}.")
-        command(params)
+        return command(params)
 
     def _move(self, params: dict) -> None:
         if params.keys() & {"lat", "lon"}:
@@ -131,7 +131,7 @@ class MapCommands:
             raise ValueError(f"No available layer matches {identifier!r}.")
         return layer
 
-    def _select(self, params: dict) -> None:
+    def _select(self, params: dict) -> int:
         layer = self._layer(params)
         if not isinstance(layer, QgsVectorLayer):
             raise ValueError("Select by expression requires a vector layer.")
@@ -146,6 +146,7 @@ class MapCommands:
             raise ValueError(expression.evalErrorString() or "Invalid QGIS expression.")
 
         layer.selectByExpression(source, Qgis.SelectBehavior.SetSelection)
+        return layer.selectedFeatureCount()
 
     def _zoom_to_selection(self, params: dict) -> None:
         layer = self._layer(params)

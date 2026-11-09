@@ -7,7 +7,7 @@ from simple_remote_control.protocol import handle_request
 
 class ProtocolTests(unittest.TestCase):
     def test_utf8_and_request_id(self):
-        dispatch = Mock()
+        dispatch = Mock(return_value=2)
         request = {
             "id": "sélection",
             "method": "select",
@@ -16,8 +16,15 @@ class ProtocolTests(unittest.TestCase):
         frame = json.dumps(request, ensure_ascii=False).encode("utf-8")
         reply = handle_request(frame, dispatch)
         self.assertTrue(reply.endswith(b"\n"))
-        self.assertEqual(json.loads(reply), {"id": "sélection", "ok": True})
+        self.assertEqual(
+            json.loads(reply), {"id": "sélection", "ok": True, "selectedCount": 2}
+        )
         dispatch.assert_called_once_with("select", request["params"])
+
+    def test_select_reply_includes_zero_count(self):
+        frame = b'{"id":1,"method":"select","params":{"layer":0,"expression":"false"}}'
+        reply = handle_request(frame, Mock(return_value=0))
+        self.assertEqual(json.loads(reply), {"id": 1, "ok": True, "selectedCount": 0})
 
     def test_notification_executes_without_reply(self):
         dispatch = Mock(side_effect=ValueError("No selected features."))

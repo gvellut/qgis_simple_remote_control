@@ -13,28 +13,53 @@ TIMEOUT_MS = 30_000
 
 
 def send_request(socket_name: str, method: str, params: dict) -> None:
-    request_id = 1
+    send_requests(socket_name, [(method, params)])
+
+
+def send_requests(socket_name: str, requests: list[tuple[str, dict]]) -> None:
     try:
-        request = (
-            json.dumps(
-                {"id": request_id, "method": method, "params": params},
-                ensure_ascii=False,
-                allow_nan=False,
-            ).encode("utf-8")
-            + b"\n"
-        )
+        frames = [
+            (
+                method,
+                json.dumps(
+                    {"id": request_id, "method": method, "params": params},
+                    ensure_ascii=False,
+                    allow_nan=False,
+                ).encode("utf-8")
+                + b"\n",
+            )
+            for request_id, (method, params) in enumerate(requests, 1)
+        ]
     except ValueError as error:
         raise click.UsageError("Coordinates and scale must be finite.") from error
 
+    selected_count = None
     socket = QLocalSocket()
-    socket.connectToServer(socket_name)
-    if socket.state() != QLocalSocket.LocalSocketState.ConnectedState and not (
-        socket.waitForConnected(TIMEOUT_MS)
-    ):
-        raise click.ClickException(
-            f"Could not connect to {socket_name!r}. {socket.errorString()}"
-        )
+    try:
+        socket.connectToServer(socket_name)
+        if socket.state() != QLocalSocket.LocalSocketState.ConnectedState and not (
+            socket.waitForConnected(TIMEOUT_MS)
+        ):
+            raise click.ClickException(
+                f"Could not connect to {socket_name!r}. {socket.errorString()}"
+            )
+        for request_id, (method, frame) in enumerate(frames, 1):
+            try:
+                reply = exchange(socket, request_id, frame)
+            except click.ClickException as error:
+                if len(requests) == 1:
+                    raise
+                raise click.ClickException(
+                    f"{method} failed. {error.format_message()}"
+                ) from error
+            if method == "select":
+                selected_count = reply.get("selectedCount")
+    finally:
+        socket.abort()
+    click.echo("OK" if selected_count is None else f"OK ({selected_count} selected)")
 
+
+def exchange(socket: QLocalSocket, request_id: int, request: bytes) -> dict:
     deadline = QDeadlineTimer(TIMEOUT_MS)
     if socket.write(request) != len(request):
         raise click.ClickException(f"Could not send request. {socket.errorString()}")
@@ -57,11 +82,15 @@ def send_request(socket_name: str, method: str, params: dict) -> None:
         reply = json.loads(bytes(socket.readLine()).decode("utf-8"))
     except ValueError as error:
         raise click.ClickException("QGIS sent an invalid JSON reply.") from error
-    if not isinstance(reply, dict) or reply.get("id") != request_id:
+    if (
+        not isinstance(reply, dict)
+        or type(reply.get("id")) is not int
+        or reply["id"] != request_id
+    ):
         raise click.ClickException("QGIS sent a reply with an unexpected request ID.")
     if reply.get("ok") is not True:
         raise click.ClickException(reply.get("error") or "QGIS rejected the request.")
-    click.echo("OK")
+    return reply
 
 
 def layer_identifier(layer: str | None, layer_index: int | None) -> str | int:
@@ -142,6 +171,33 @@ def zoom_to_selection(socket_name, layer, layer_index):
     """Zoom to a layer's selected features."""
     send_request(
         socket_name, "zoomToSelection", {"layer": layer_identifier(layer, layer_index)}
+    )
+
+
+@cli.command()
+@click.option("--layer", help="Exact Layers panel label.")
+@click.option(
+    "--layer-index", type=click.IntRange(min=0), help="Zero-based tree index."
+)
+@click.argument("filename")
+@click.pass_obj
+def select_photo(socket_name, layer, layer_index, filename):
+    """Select by the Name field and zoom. Include the filename extension."""
+    identifier = layer_identifier(layer, layer_index)
+    # Match the escaping used by QgsExpression.quotedString().
+    escaped = (
+        filename.replace("\\", "\\\\")
+        .replace("'", "''")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+    expression = f"\"Name\" = '{escaped}'"
+    send_requests(
+        socket_name,
+        [
+            ("select", {"layer": identifier, "expression": expression}),
+            ("zoomToSelection", {"layer": identifier}),
+        ],
     )
 
 

@@ -28,3 +28,5 @@ Send UTF-8 JSON with a newline after each object. You can send multiple requests
 - **layer** is the first exact, case-sensitive Layers panel label or a zero-based position in the Layers tree. Hidden and nested layers count.
 
 Replies use the same framing and echo the string or integer `id`. Success is `{"id":1,"ok":true}` and failure is `{"id":1,"ok":false,"error":"message"}`. Omit `id` to execute without a reply. Malformed lines and invalid IDs are discarded. A request larger than 1 MiB closes the connection.
+
+A successful `select` reply includes the number of selected features as `selectedCount`, including zero. For example, `{"id":2,"ok":true,"selectedCount":12}`.

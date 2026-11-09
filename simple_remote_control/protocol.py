@@ -9,7 +9,9 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"Invalid JSON constant {value}")
 
 
-def handle_request(frame: bytes, dispatch: Callable[[str, dict], None]) -> bytes | None:
+def handle_request(
+    frame: bytes, dispatch: Callable[[str, dict], int | None]
+) -> bytes | None:
     try:
         request = json.loads(frame.decode("utf-8"), parse_constant=_reject_constant)
     except (ValueError, RecursionError):
@@ -26,8 +28,10 @@ def handle_request(frame: bytes, dispatch: Callable[[str, dict], None]) -> bytes
         method, params = request.get("method"), request.get("params")
         if not isinstance(method, str) or not isinstance(params, dict):
             raise ValueError("A request needs a method string and a params object.")
-        dispatch(method, params)
+        selected_count = dispatch(method, params)
         reply = {"id": request_id, "ok": True}
+        if selected_count is not None:
+            reply["selectedCount"] = selected_count
     except ValueError as error:
         reply = {"id": request_id, "ok": False, "error": str(error)}
     except Exception:
