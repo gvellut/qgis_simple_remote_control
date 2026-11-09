@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from qgis.core import QgsProject
+from qgis.core import QgsApplication, QgsProject
 from qgis.PyQt.QtGui import QAction, QIcon
 
 from .commands import MapCommands
@@ -27,14 +27,16 @@ class SimpleRemoteControlPlugin:
         self.iface.addToolBarIcon(self._toggle_action)
         self.iface.addPluginToMenu(TITLE, self._toggle_action)
 
-        self._settings_action = QAction(plugin_icon, "Settings", window)
+        self._settings_action = QAction(
+            QgsApplication.getThemeIcon("/mActionOptions.svg"), "Settings", window
+        )
         self._settings_action.triggered.connect(self._open_settings)
         self.iface.addPluginToMenu(TITLE, self._settings_action)
         self._options_factory = OptionsFactory(self.server, plugin_icon)
         self.iface.registerOptionsWidgetFactory(self._options_factory)
 
         settings = Settings.load()
-        if settings.autostart:
+        if settings.restore_server_state and settings.server_was_running:
             self._start(settings)
 
     def unload(self) -> None:
@@ -54,10 +56,13 @@ class SimpleRemoteControlPlugin:
             self.iface.messageBar().pushCritical(
                 TITLE, f"Could not start on {settings.address!r}. {error}"
             )
+        else:
+            Settings.save_server_state(True)
 
     def _toggle(self) -> None:
         if self.server.running:
             self.server.stop()
+            Settings.save_server_state(False)
         else:
             self._start(Settings.load())
 

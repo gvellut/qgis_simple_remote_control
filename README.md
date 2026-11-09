@@ -2,7 +2,7 @@
 
 Control the map and feature selection in QGIS 4 from another process on the same machine and under the same user account.
 
-Open **Plugins → Simple Remote Control → Settings** to choose the address and whether to start automatically. By default, use **Start** in the toolbar or plugin menu. Use **Stop** before changing the address.
+Open **Plugins → Simple Remote Control → Settings** to choose the socket address. Enable **Restore server state on startup** to restore the last **Start** or **Stop** choice when QGIS opens. With the option off, use **Start** in the toolbar or plugin menu. Use **Stop** before changing the address.
 
 | Mode | macOS and Linux | Windows with Qt 6.11 or later |
 | --- | --- | --- |

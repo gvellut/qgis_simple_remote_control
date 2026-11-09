@@ -5,6 +5,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import Mock
 from uuid import uuid4
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -27,6 +28,7 @@ try:
     from qgis.gui import QgsMapCanvas
     from qgis.PyQt.QtCore import QDir
     from qgis.PyQt.QtNetwork import QLocalSocket
+    from qgis.PyQt.QtWidgets import QMainWindow
 except ModuleNotFoundError as error:
     if error.name == "qgis":
         raise unittest.SkipTest("Requires the QGIS 4 Python runtime.") from error
@@ -40,6 +42,7 @@ from simple_remote_control.server import (
     LocalServer,
 )
 from simple_remote_control.settings import SETTINGS_ROOT, OptionsPage, Settings
+from simple_remote_control.simple_remote_control import SimpleRemoteControlPlugin
 
 PROFILE = tempfile.TemporaryDirectory(prefix="qrc-tests-")
 APP = QgsApplication([], True, PROFILE.name)
@@ -177,7 +180,8 @@ class SettingsTests(unittest.TestCase):
 
     def test_settings_remember_both_modes_and_startup_choice(self):
         self.assertEqual(
-            Settings.load(), Settings("qt", DEFAULT_NAME, DEFAULT_ABSOLUTE, False)
+            Settings.load(),
+            Settings("qt", DEFAULT_NAME, DEFAULT_ABSOLUTE, False, False),
         )
         server = LocalServer(self.fail)
         page = OptionsPage(server)
@@ -189,13 +193,13 @@ class SettingsTests(unittest.TestCase):
         page.mode_combo.setCurrentIndex(0)
         self.assertEqual(page.address_edit.text(), "custom-name")
         page.mode_combo.setCurrentIndex(1)
-        page.autostart_checkbox.setChecked(True)
+        page.restore_state_checkbox.setChecked(True)
         page.apply()
 
         reloaded = OptionsPage(server)
         self.assertEqual(
             Settings.load(),
-            Settings("absolute", "custom-name", "/tmp/custom.sock", True),
+            Settings("absolute", "custom-name", "/tmp/custom.sock", True, False),
         )
         self.assertEqual(reloaded.address_edit.text(), "/tmp/custom.sock")
 
@@ -284,8 +288,39 @@ class LocalServerTests(unittest.TestCase):
         self.server.start("absolute", str(path))
         self.assertFalse(page.mode_combo.isEnabled())
         self.assertFalse(page.address_edit.isEnabled())
-        self.assertTrue(page.autostart_checkbox.isEnabled())
+        self.assertTrue(page.restore_state_checkbox.isEnabled())
         self.server.stop()
         self.assertTrue(page.mode_combo.isEnabled())
         self.assertTrue(page.address_edit.isEnabled())
         self.assertFalse(path.exists())
+
+    def test_plugin_restores_last_start_or_stop_only_when_enabled(self):
+        settings = QgsSettings()
+        self.addCleanup(settings.remove, SETTINGS_ROOT)
+        settings.setValue(f"{SETTINGS_ROOT}/qt_name", self.name)
+        window = QMainWindow()
+        iface = Mock()
+        iface.mainWindow.return_value = window
+        sessions = (
+            ("first session", True, False, True, True),
+            ("restore running and stop", True, True, True, False),
+            ("restore stopped and start", True, False, True, True),
+            ("restoration disabled", False, False, False, True),
+            ("restoration re-enabled", True, True, False, True),
+        )
+        for session, restore, running_on_start, toggle, saved_state in sessions:
+            with self.subTest(session=session):
+                settings.setValue(f"{SETTINGS_ROOT}/autostart", restore)
+                plugin = SimpleRemoteControlPlugin(iface)
+                plugin.initGui()
+                try:
+                    self.assertEqual(plugin.server.running, running_on_start)
+                    if toggle:
+                        plugin._toggle_action.trigger()
+                    self.assertEqual(plugin.server.running, running_on_start != toggle)
+                    self.assertEqual(Settings.load().server_was_running, saved_state)
+                finally:
+                    plugin.unload()
+
+                self.assertEqual(Settings.load().server_was_running, saved_state)
+                self.assertFalse((Path(QDir.tempPath()) / self.name).exists())

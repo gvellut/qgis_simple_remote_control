@@ -21,7 +21,8 @@ class Settings:
     mode: str
     qt_name: str
     absolute_path: str
-    autostart: bool
+    restore_server_state: bool
+    server_was_running: bool
 
     @classmethod
     def load(cls):
@@ -35,8 +36,16 @@ class Settings:
             ),
             qt_name=settings.value("qt_name", DEFAULT_NAME, type=str),
             absolute_path=settings.value("absolute_path", DEFAULT_ABSOLUTE, type=str),
-            autostart=settings.value("autostart", False, type=bool),
+            # Keep the existing checkbox preference.
+            restore_server_state=settings.value("autostart", False, type=bool),
+            server_was_running=settings.value("server_was_running", False, type=bool),
         )
+
+    @staticmethod
+    def save_server_state(running: bool) -> None:
+        settings = QgsSettings()
+        settings.setValue(f"{SETTINGS_ROOT}/server_was_running", running)
+        settings.sync()
 
     @property
     def address(self) -> str:
@@ -56,13 +65,13 @@ class OptionsPage(QgsOptionsPageWidget):
         self.mode_combo.addItem("Absolute", "absolute")
         self.mode_combo.setCurrentIndex(self.mode_combo.findData(self._mode))
         self.address_edit = QLineEdit(settings.address, self)
-        self.autostart_checkbox = QCheckBox("Start automatically", self)
-        self.autostart_checkbox.setChecked(settings.autostart)
+        self.restore_state_checkbox = QCheckBox("Restore server state on startup", self)
+        self.restore_state_checkbox.setChecked(settings.restore_server_state)
 
         form = QFormLayout()
         form.addRow("Socket mode", self.mode_combo)
         form.addRow("Socket address", self.address_edit)
-        form.addRow(self.autostart_checkbox)
+        form.addRow(self.restore_state_checkbox)
         layout = QVBoxLayout(self)
         layout.addLayout(form)
         layout.addStretch()
@@ -83,7 +92,7 @@ class OptionsPage(QgsOptionsPageWidget):
     def apply(self) -> None:
         settings = QgsSettings()
         settings.beginGroup(SETTINGS_ROOT)
-        settings.setValue("autostart", self.autostart_checkbox.isChecked())
+        settings.setValue("autostart", self.restore_state_checkbox.isChecked())
         if not self._server.running:
             self._addresses[self._mode] = self.address_edit.text()
             settings.setValue("mode", self._mode)
