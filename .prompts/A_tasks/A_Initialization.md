@@ -1,1 +1,31 @@
-I wnat to create a QGIS plugin : 
+I want to create a QGIS 4 plugin that controls QGIS from another process on the same machine : 
+- QGIS 4 only : no compatibility for QGIS 3 needed.
+- you can follow /Users/guilhem/dev/projects/github/qgis_simple_overpass for the layout : a folder simple_remote_control with the metadata and code (possibly a hierarchy but if simple no need) + some ruff / uv / other files in the root
+- it will use inter process communication through unix sockets through QLocalServer / QLocalSocket
+    - should work on macos but good if works on Linux + windows too. Indicate if cmopatibility makes things more complicated.
+- use UTF-8 JSON in the wire format
+- use a request id field so the QLocalServer can send reply or just acknowledgement to the caller and it knows what request is is about : the caller sends it, the server uses the same for the reply. If none included, no reply.
+- it will expose only 3 methods :
+     - one : "move" with x y + crs (like "EPSG:...") OR lat lon (equivalent to x y with EPSG:4326) + scale (the scale factor) OR z (the number used by Google Maps / OpenStreeMap, that translates to a scale). 
+        - If z / scale not given, there is no zoom, just a pan.
+     - one : "select" : it will be equivalent to the Select Features by Expression of QGIS : it will have as a param a layer name or index + the expression itself. IT should be general but in my case I will essentially use a "contains <string>" query.
+     - one : "zoomToSelection" : it will zoom to the features selected : it will have as a param a layer name (string) or index (integer)
+     - if layer is a string, use the first matching layer with the label
+     - for the layer index : it should have a stable ordering and expected : all layers in tree order, including nested groups. So using findLayers I think.
+     - define the wire format. I don't really care about the details.
+- Add a setting panel similar to /Users/guilhem/dev/projects/github/qgis_simple_overpass. The panel will be used :
+    - to define a path for the socket:
+        - a combobox with 2 modes: 
+            - "Qt" mode : the text field is a string suitable for the Qt socket name (put in QDir.tempPath())
+            - "Absolute" mode : the text field is a path (to be filled by the user)
+        - a text field :
+            - default value in Qt mode : "qgis-remote-control" ; in absolute mode : if on unix /tmp/qgis-remote-control.sock. An equivalent valid value on Windows.
+        - the plugin keeps a value for both modes (so can switch and keep value). Which mode is chosen is kept
+    - a checkbox to define if the socket server is startd when the plugin is loaded when QGIS starts or if starts stopped and must be explicitly started by the user.
+        - by default it is not checked
+- Add a tool icon : Start that will start the server; it will transform to Stop icon when started. 
+    - put the same thing in Plugins → Simple Remote Control
+    - standard QGIS error (the status bar at the top of the map) if cannot start a server eg if the path / value is bad.
+- README : add a documentation of the wire format for the methods + location of settings
+    - keep text short. Only functionality, not technical (except related to socket : has to be technical )
+- AGENTS : so easy to write a client for the defined methods. Keep it short.

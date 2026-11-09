@@ -1,1 +1,1 @@
-- [Initialization](A_tasks/A_Initialization.md)
+* [Initialization](A_tasks/A_Initialization.md)
