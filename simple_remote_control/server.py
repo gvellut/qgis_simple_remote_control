@@ -6,15 +6,7 @@ import socket
 import struct
 import sys
 
-from qgis.PyQt.QtCore import (
-    QDir,
-    QLockFile,
-    QObject,
-    QStandardPaths,
-    QVersionNumber,
-    pyqtSignal,
-    qVersion,
-)
+from qgis.PyQt.QtCore import QDir, QLockFile, QObject, QStandardPaths, pyqtSignal
 from qgis.PyQt.QtNetwork import QLocalServer, QLocalSocket
 
 from .protocol import handle_request
@@ -75,7 +67,7 @@ def _lock_pipe(name: str) -> QLockFile:
 
 def _is_current_user(descriptor: int) -> bool:
     if sys.platform == "win32":
-        # The pipe ACL checks the user and Qt 6.11 rejects remote clients.
+        # Qt enforces same-user access through the pipe ACL.
         return True
     if sys.platform == "darwin":
         getpeereid = ctypes.CDLL(None).getpeereid
@@ -119,11 +111,6 @@ class LocalServer(QObject):
 
         name = _listen_name(mode, value)
         if sys.platform == "win32":
-            version, _ = QVersionNumber.fromString(qVersion())
-            if QVersionNumber.compare(version, QVersionNumber(6, 11)) < 0:
-                raise OSError(
-                    "Local-only Windows named pipes require Qt 6.11 or later."
-                )
             self._listener.setSocketOptions(QLocalServer.SocketOption.UserAccessOption)
             self._pipe_lock = _lock_pipe(name)
         else:

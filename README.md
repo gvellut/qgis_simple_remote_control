@@ -1,13 +1,15 @@
 # Simple Remote Control
 
-Control the map and feature selection in QGIS 4 from another process on the same machine and under the same user account.
+Control the map and feature selection in QGIS 4 from another process under the same user account.
 
 Open **Plugins → Simple Remote Control → Settings** to choose the socket address. Enable **Restore server state on startup** to restore the last **Start** or **Stop** choice when QGIS opens. With the option off, use **Start** in the toolbar or plugin menu. Use **Stop** before changing the address.
 
-| Mode | macOS and Linux | Windows with Qt 6.11 or later |
+| Mode | macOS and Linux | Windows |
 | --- | --- | --- |
 | **Qt** | Pass the name to `QLocalSocket.connectToServer()`. For a Unix socket client, use the name under QGIS's `QDir.tempPath()`. The default name is `qgis-remote-control`. | Pass the name to `QLocalSocket.connectToServer()`. The default name is `qgis-remote-control`. |
 | **Absolute** | Connect to the configured Unix socket path. The default is `/tmp/qgis-remote-control.sock`. | Connect to the configured named pipe. The default is `\\.\pipe\qgis-remote-control`. |
+
+*Note*: On Windows, Qt versions before 6.11 can accept named pipe connections from other machines when Windows file sharing and the pipe's access permissions allow it. Qt 6.11 and later reject remote clients. The QGIS 4.3 Windows build will use Qt 6.11.
 
 If a crash leaves the Unix socket path occupied, choose another address or remove the socket file after confirming its server has stopped.
 
