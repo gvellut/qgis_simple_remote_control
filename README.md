@@ -18,12 +18,12 @@ If a crash leaves the Unix socket path occupied, choose another address or remov
 Send UTF-8 JSON with a newline after each object. You can send multiple requests on one connection.
 
 ```jsonl
-{"id":1,"method":"move","params":{"lat":48.8566,"lon":2.3522,"z":14}}
+{"id":1,"method":"move","params":{"lat":48.8566,"lon":2.3522,"z":14,"marker":true}}
 {"id":2,"method":"select","params":{"layer":"Places","expression":"strpos(\"name\", 'Café') > 0"}}
 {"id":3,"method":"zoomToSelection","params":{"layer":0}}
 ```
 
-- **move** accepts `lat` and `lon` in WGS 84, or `x`, `y` and `crs` such as `EPSG:2154`. Use a scale denominator such as `"scale":25000`, a Web Mercator zoom level `z` from 0 to 30, or neither for pan only. A blank map starts at zoom level 2 if you omit zoom.
+- **move** accepts `lat` and `lon` in WGS 84, or `x`, `y` and `crs` such as `EPSG:2154`. Use a scale denominator such as `"scale":25000`, a Web Mercator zoom level `z` from 0 to 30, or neither for pan only. A blank map starts at zoom level 2 if you omit zoom. Set `"marker":true` to show a red marker above the map layers until the next pan or zoom.
 - **select** replaces a vector layer's selection. **zoomToSelection** zooms to the selected features in a spatial vector or vector tile layer.
 - **layer** is the first exact, case-sensitive Layers panel label or a zero-based position in the Layers tree. Hidden and nested layers count.
 

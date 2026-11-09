@@ -13,6 +13,8 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorTileLayer,
 )
+from qgis.gui import QgsVertexMarker
+from qgis.PyQt.QtGui import QColor
 
 
 def _number(params: dict, key: str) -> float:
@@ -32,6 +34,7 @@ class MapCommands:
     def __init__(self, canvas, project):
         self._canvas = canvas
         self._project = project
+        self._marker: QgsVertexMarker | None = None
         self._methods = {
             "move": self._move,
             "select": self._select,
@@ -45,6 +48,10 @@ class MapCommands:
         return command(params)
 
     def _move(self, params: dict) -> None:
+        show_marker = params.get("marker", False)
+        if type(show_marker) is not bool:
+            raise ValueError("marker must be a boolean.")
+
         if params.keys() & {"lat", "lon"}:
             if params.keys() & {"x", "y", "crs"}:
                 raise ValueError("Use lat and lon or x, y and crs.")
@@ -88,6 +95,26 @@ class MapCommands:
             )
 
         self._set_view(center, scale)
+        if show_marker:
+            self.clear_marker()
+            marker = QgsVertexMarker(self._canvas)
+            marker.setIconType(QgsVertexMarker.IconType.ICON_CIRCLE)
+            marker.setIconSize(14)
+            marker.setColor(QColor("white"))
+            marker.setFillColor(QColor("red"))
+            marker.setPenWidth(2)
+            marker.setCenter(center)
+            self._marker = marker
+            self._canvas.extentsChanged.connect(self.clear_marker)
+            # QGIS zooms by changing magnification when the scale is locked.
+            self._canvas.magnificationChanged.connect(self.clear_marker)
+
+    def clear_marker(self) -> None:
+        if self._marker is not None:
+            self._canvas.extentsChanged.disconnect(self.clear_marker)
+            self._canvas.magnificationChanged.disconnect(self.clear_marker)
+            self._canvas.scene().removeItem(self._marker)
+            self._marker = None
 
     def _set_view(self, center: QgsPointXY, scale: float | None) -> None:
         settings = QgsMapSettings(self._canvas.mapSettings())

@@ -11,8 +11,8 @@ from .settings import TITLE, OptionsFactory, Settings
 class SimpleRemoteControlPlugin:
     def __init__(self, iface):
         self.iface = iface
-        commands = MapCommands(iface.mapCanvas(), QgsProject.instance())
-        self.server = LocalServer(commands.dispatch)
+        self._commands = MapCommands(iface.mapCanvas(), QgsProject.instance())
+        self.server = LocalServer(self._commands.dispatch)
 
     def initGui(self) -> None:
         window = self.iface.mainWindow()
@@ -41,6 +41,7 @@ class SimpleRemoteControlPlugin:
 
     def unload(self) -> None:
         self.server.stop()
+        self._commands.clear_marker()
         self.server.running_changed.disconnect(self._update_action)
         self.iface.unregisterOptionsWidgetFactory(self._options_factory)
         self._options_factory.deleteLater()

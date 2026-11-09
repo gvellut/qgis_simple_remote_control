@@ -127,8 +127,11 @@ def cli(ctx: click.Context, socket_name: str) -> None:
     help="Map scale denominator.",
 )
 @click.option("--z", type=click.IntRange(0, 30), help="Web Mercator zoom level.")
+@click.option(
+    "--marker", is_flag=True, help="Show a red marker until the next pan or zoom."
+)
 @click.pass_obj
-def move(socket_name, lat, lon, x, y, crs, scale, z):
+def move(socket_name, lat, lon, x, y, crs, scale, z, marker):
     """Pan to a point and optionally zoom."""
     if lat is not None and lon is not None and x is None and y is None and crs is None:
         params = {"lat": lat, "lon": lon}
@@ -142,6 +145,8 @@ def move(socket_name, lat, lon, x, y, crs, scale, z):
         params["scale"] = scale
     if z is not None:
         params["z"] = z
+    if marker:
+        params["marker"] = True
     send_request(socket_name, "move", params)
 
 

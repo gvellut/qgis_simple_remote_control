@@ -25,7 +25,7 @@ try:
         QgsTileMatrix,
         QgsVectorLayer,
     )
-    from qgis.gui import QgsMapCanvas
+    from qgis.gui import QgsMapCanvas, QgsVertexMarker
     from qgis.PyQt.QtCore import QDir
     from qgis.PyQt.QtNetwork import QLocalSocket
     from qgis.PyQt.QtWidgets import QMainWindow
@@ -101,6 +101,7 @@ class MapCommandTests(unittest.TestCase):
             {"lat": 40, "lon": 2, "scale": 25000, "z": 14},
             {"lat": 40, "lon": 2, "z": True},
             {"lat": 40, "lon": 2, "z": 31},
+            {"lat": 40, "lon": 2, "marker": "true"},
             {"lat": 91, "lon": 2},
             {"lat": 40, "lon": float("inf")},
             {"x": 2, "y": 40, "crs": "EPSG:0"},
@@ -108,6 +109,32 @@ class MapCommandTests(unittest.TestCase):
             with self.subTest(params=params), self.assertRaises(ValueError):
                 self.commands.dispatch("move", params)
             self.assertEqual(self.canvas.extent(), original_extent)
+
+    def test_move_marker_stays_until_pan_or_zoom(self):
+        def markers():
+            return [
+                item
+                for item in self.canvas.scene().items()
+                if isinstance(item, QgsVertexMarker)
+            ]
+
+        params = {"lat": 48.8566, "lon": 2.3522, "z": 14}
+        self.commands.dispatch("move", params)
+        self.assertEqual(markers(), [])
+
+        marked_move = params | {"marker": True}
+        for change_view in (
+            lambda: self.canvas.setCenter(QgsPointXY()),
+            self.canvas.zoomIn,
+        ):
+            self.commands.dispatch("move", marked_move)
+            self.commands.dispatch("move", marked_move)
+            (marker,) = markers()
+            self.assertTrue(marker.isVisible())
+            self.assertEqual(marker.fillColor().name(), "#ff0000")
+            self.assertEqual(marker.center(), self.canvas.center())
+            change_view()
+            self.assertEqual(markers(), [])
 
     def test_move_initializes_blank_canvas(self):
         canvas = QgsMapCanvas()
